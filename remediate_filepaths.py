@@ -43,11 +43,6 @@ def main():
             print("Kaboom!")
 
 def process_dir(target_dir):
-    # first, clean up paths
-    process_subdir_names(target_dir)
-    # find_files(target_dir)
-
-def process_subdir_names(target_dir):
     # os.walk takes a topdown parameter which defaults to true.
     # Need to set it to true so it goes bottom-up.
     for dirpath, subdirs, files in os.walk(target_dir, topdown=False):
