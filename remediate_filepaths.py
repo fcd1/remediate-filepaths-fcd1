@@ -7,6 +7,7 @@
 import sys
 import os
 import argparse
+from unidecode import unidecode
 
 def main():
     print("Entering main()")
