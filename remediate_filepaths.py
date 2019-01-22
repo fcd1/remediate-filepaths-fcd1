@@ -46,40 +46,37 @@ def process_dir(target_dir):
     # os.walk takes a topdown parameter which defaults to true.
     # Need to set it to true so it goes bottom-up.
     for dirpath, subdirs, files in os.walk(target_dir, topdown=False):
+        # First, handle subdirs in current directory
         for subdir in subdirs:
-            print(subdir)
-            remediated_name = remediate_string(subdir)
+            remediated_name = remediate_basename_dirname(subdir)
             if remediated_name != subdir:
                 os.rename(os.path.join(dirpath, subdir),
                           os.path.join(dirpath, remediated_name))
-            # as_test_just_rename_dir(root,subdir)
-            print(subdir)
+        # Second, handle files in current directory
+        for filename in files:
+            # separate file into basename and extension
+            basename, extension = os.path.splitext(filename)
+            remediated_basename = remediate_basename_dirname(basename)
+            remediated_extension = remediate_extension(extension) if extension else extension
+            if remediated_basename != basename or remediated_extension != extension:
+                os.rename(os.path.join(dirpath, filename),
+                          os.path.join(dirpath, remediated_basename + remediated_extension))
 
-def find_files(target_dir):
-    for root, subdirs, files in os.walk(target_dir):
-        for target_file in files:
-            print(os.path.join(root,target_file))
-            process_file(target_file)
-
-def process_file(target_file):
-    # separate file into basename and extension
-    basename, extension = os.path.splitext(target_file)
-    print(basename)
-    print(extension)
-
-def as_test_just_rename_dir(base_path, target_dir):
-    os.rename(os.path.join(base_path, target_dir),
-              os.path.join(base_path, target_dir + "foo"))
-
-def remediate_string(str_arg):
+def remediate_basename_dirname(str_arg):
     # first, handle non-ASCII characters
     ascii_str = unidecode(str_arg)
     # then, replace invalid ASCII characters, such as space, !, *, ., etc
     remediated_str = re.sub('[^a-zA-Z0-9]+','_',ascii_str)
     return remediated_str
 
-def validate_name_and_remediate_if_needed(target_name):
-    pass
+def remediate_extension(str_arg):
+    # remove leading '.'
+    extension_str = str_arg.strip('.')
+    # first, handle non-ASCII characters
+    ascii_extension_str = unidecode(extension_str)
+    # then, replace invalid ASCII characters, such as space, !, *, ., etc
+    remediated_extension_str = re.sub('[^a-zA-Z0-9]+','_',ascii_extension_str)
+    return '.' + remediated_extension_str
 
 if __name__ == "__main__":
     main()
