@@ -9,9 +9,13 @@ import os
 import argparse
 from unidecode import unidecode
 import re
+import logging
+from datetime import datetime
 
 def main():
     print("Entering main()")
+
+    setup_logging()
 
     # process arguments
 
@@ -77,6 +81,51 @@ def remediate_extension(str_arg):
     # then, replace invalid ASCII characters, such as space, !, *, ., etc
     remediated_extension_str = re.sub('[^a-zA-Z0-9]+','_',ascii_extension_str)
     return '.' + remediated_extension_str
+
+# Following return the absolute path to the logfile that will be generate
+# The return value will contain the filename
+def return_logfile_destination(log_filename):
+    sudo_user = os.getenv('SUDO_USER')
+    user = os.getenv('USER')
+    print('SUDO_USER is set to', sudo_user)
+    print('USER is set to', user)
+    if sudo_user:
+        print('Since SUDO_USER set, will use it')
+        return os.path.join(os.path.expanduser('~' + sudo_user),
+                            log_filename)
+    else:
+        print('Since SUDO_USER is not set, will use USER instead')
+        return os.path.join(os.path.expanduser('~' + user),
+                            log_filename)
+
+def setup_logging(log_filename=return_logfile_destination('remediate_filepaths.'
+                                                          + datetime.now().strftime("%d%b%y_%H%M%S")
+                                                          + '.log')):
+    # file for logging
+    logfile_handler = logging.FileHandler(log_filename)
+    global file_logger
+    file_logger = logging.getLogger('remediate_filepaths_logger')
+    file_logger.setLevel('INFO')
+    file_logger.addHandler(logfile_handler)
+    file_logger.info('Logging started on ' + datetime.now().strftime("%x") + ' at ' + datetime.now().strftime("%X"))
+
+def setup_logging_original(log_filename=os.path.join('log/',datetime.now().strftime("%d%b%y_%H%M%S"))):
+    # local file for logging
+    logfile_handler = logging.FileHandler(log_filename)
+    # tty. Believe stderr
+    stream_handler = logging.StreamHandler()
+    global stream_logger, file_logger, stream_file_logger
+    stream_logger = logging.getLogger('migrate_doi_stream_logger')
+    stream_logger.setLevel('INFO')
+    stream_logger.addHandler(stream_handler)
+    file_logger = logging.getLogger('migrate_doi_file_logger')
+    file_logger.setLevel('INFO')
+    file_logger.addHandler(logfile_handler)
+    stream_file_logger = logging.getLogger('migrate_doi_stream_file_logger')
+    stream_file_logger.setLevel('INFO')
+    stream_file_logger.addHandler(logfile_handler)
+    stream_file_logger.addHandler(stream_handler)
+    file_logger.info('Logging started on ' + datetime.now().strftime("%x") + ' at ' + datetime.now().strftime("%X"))
 
 if __name__ == "__main__":
     main()
