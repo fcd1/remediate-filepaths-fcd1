@@ -14,28 +14,18 @@ from datetime import datetime
 
 def main():
     print("Entering main()")
-
     setup_logging()
-
     # process arguments
-
-    # get arguments. Returns a list, first entry is name of script
-
-    # assuming called as follows: python3 basic_sanitize_filename.py hi
-    # rest of arguments should be absolute paths to directories
-    # args = sys.argv
-    # print(args)
-    # args.pop(0)
-    # print(args)
-
     parser = argparse.ArgumentParser(description='remediate names for directory contents (files and subdirs)')
     parser.add_argument('dirs',
                         metavar='dir',
                         nargs='+',
                         help='directory to remediate')
-
+    parser.add_argument('-v','--verbose',
+                        action='store_true',
+                        help='verbose logging, which includes untouched files/dirs')
+    global args
     args = parser.parse_args()
-
     # for each argument
     for i, directory in enumerate(args.dirs):
         # only process dir if it's an absolute path and
@@ -46,18 +36,34 @@ def main():
         else:
             print("Kaboom!")
 
+def log_processing_msg(offset, type_arg, name):
+    file_logger.info(offset + 'Processing ' + type_arg + ": '" + name + "'")
+
+def log_renamed_msg(offset, type_arg, old_name, new_name):
+    file_logger.info(offset + 'Renamed ' + type_arg + ": '" +
+                     old_name + "' to: '" +
+                     new_name + "'")
+
 def process_dir(target_dir):
+    # offset is used when logging output, to help with the formating
+    offset = '  '
     # os.walk takes a topdown parameter which defaults to true.
     # Need to set it to true so it goes bottom-up.
     for dirpath, subdirs, files in os.walk(target_dir, topdown=False):
+        file_logger.info("Currently in dir: '" + dirpath + "'")
         # First, handle subdirs in current directory
         for subdir in subdirs:
+            if args.verbose:
+                log_processing_msg(offset, 'subdir', subdir)
             remediated_name = remediate_basename_dirname(subdir)
             if remediated_name != subdir:
                 os.rename(os.path.join(dirpath, subdir),
                           os.path.join(dirpath, remediated_name))
+                log_renamed_msg(offset, 'subdir', subdir, remediated_name)
         # Second, handle files in current directory
         for filename in files:
+            if args.verbose:
+                log_processing_msg(offset, 'file', filename)
             # separate file into basename and extension
             basename, extension = os.path.splitext(filename)
             remediated_basename = remediate_basename_dirname(basename)
@@ -65,6 +71,7 @@ def process_dir(target_dir):
             if remediated_basename != basename or remediated_extension != extension:
                 os.rename(os.path.join(dirpath, filename),
                           os.path.join(dirpath, remediated_basename + remediated_extension))
+                log_renamed_msg(offset, 'file', filename, remediated_basename + remediated_extension)
 
 def remediate_basename_dirname(str_arg):
     # first, handle non-ASCII characters
